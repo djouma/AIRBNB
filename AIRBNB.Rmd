@@ -82,11 +82,11 @@ check_na(NumData)
 
 ```{r}
 library(VIM)
-
 mice_plot <- aggr(res, col=c('green','red'),
 numbers=TRUE, sortVars=TRUE,
 labels=names(res_trier), cex.axis=.5,
 gap=4, ylab=c("DONNEES MANQUANTE","DATA FRAME"))
+
 ```
 
 
@@ -140,15 +140,19 @@ res_trier_train <- res_trier_norm[ran,]
 ```
 
 ```{r}
+library(plotly)
+library(htmlwidgets)
 ggplot(res_trier) +
   aes(x = res_trier$price, y = res_trier$neighbourhood) +
    geom_point() +
   xlab("PRIX") +
   ylab("VILLE") +
   ggtitle("PRIX PAR RAPPORT AU VILLE")
+
 ```
 
 ```{r}
+
 ggplot(res_trier) +
   aes(x =res_trier$minimum_nights, y = res_trier$neighbourhood) +
   geom_smooth() +
@@ -157,4 +161,56 @@ ggplot(res_trier) +
   ylab("minimum nuit")
 ```
 
+```{r}
+library(htmlwidgets)
+carte <-as.data.frame(res_trier[c(1:100),])
+library(leaflet)
+
+m <- leaflet() %>% addTiles() %>%
+
+  setView(lng = 2.3488, lat = 48.8534, zoom = 12)  %>%
+
+  addMarkers(lng =   carte$longitude, lat = carte$latitude , popup =  carte$price)
+m
+
+```
+
+```{r}
+library(shiny)
+library(shinydashboard)
+library(shinythemes)
+library(plotly)
+
+ui <- dashboardPage(
+  dashboardHeader(title = "dataviz"),
+  dashboardSidebar(
+    sidebarMenu(
+      menuItem("Lecture des données", tabName = "readData", icon = icon("readme")),
+      menuItem("Visualisation des données", tabName = "visualization", icon = icon("poll"))
+    )
+  ),
+  dashboardBody(
+    tabItems(
+      # Read data
+      tabItem(tabName = "readData",
+              h1("Lecture des données"),
+              fileInput("dataFile",label = NULL,
+                        buttonLabel = "Browse...",
+                        placeholder = "No file selected")
+      ),
+      
+      # visualization
+      tabItem(tabName = "visualization",
+              h1(m)
+
+      )
+    )
+  )
+)
+
+ 
+server <- function(input, output) { }
+ 
+shinyApp(ui, server)
+```
 
