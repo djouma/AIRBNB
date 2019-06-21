@@ -1,0 +1,136 @@
+---
+title: "AirBNB"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+APPELLE DES PACKAGE
+```{r}
+library(dplyr)
+library(DBI)
+library(RMySQL)
+library(ggplot2)
+library(tidyverse)
+library(dbx)
+```
+CONNEXION A LA BASE DE DONNEES
+```{r}
+listings <- read_csv("C:/Users/KONLAMBIGUE DJOUMA/Desktop/listings.csv")
+
+#connexion a la base de donnée Mysql sur 'RemoteMysql.com'
+con <-dbConnect(RMySQL::MySQL(),
+                dbname ="VayTM5fyWs",
+                host = "remotemysql.com",
+                port =3306,
+                user = "VayTM5fyWs",
+                password = "zITpeq39J7"
+)
+```
+CREATION DE LA TABLE
+```{r}
+
+dbCreateTable(con, "listings",listings,encoding="UTF-8")
+```
+INSERTION DE LA DONNE DANS LA BASE
+```{r}
+dbxInsert(con, "listings",listings)
+```
+Requête de selection sur la base de donnée 
+```{r}
+
+res <- dbGetQuery(con,"SELECT * FROM listings")
+
+```
+Selectionner les colonnes qui m'interesse
+```{r}
+
+res_trier<-res %>%
+  select(
+         minimum_nights,
+         number_of_reviews,
+         availability_365,
+         neighbourhood,
+         latitude,
+         longitude,
+         price,
+         reviews_per_month)
+res_trier %>%glimpse()
+```
+
+Vérifier s'il y'a des colonnes avec des NA
+```{r}
+check_na <- function(df) {
+  # Calcul de nb de NA par Col  
+  # colSums plus rapide que apply & for;
+  nb_na_by_col <- colSums(is.na(res_trier))
+  if (sum(nb_na_by_col)==0) {
+    print("Cool,Il n'y a pas de NA")
+  }
+  else {
+    # Recuperer le sous vecteur où nb_na_by_col > 0
+    (nb_pos_na_by_col<- nb_na_by_col[nb_na_by_col > 0])
+    Na_table <- data.frame(noms= names(nb_pos_na_by_col), NA_nombre =nb_pos_na_by_col, row.names = 1:length(nb_pos_na_by_col))
+    arrange(Na_table, desc(NA_nombre)) %>% View('Na_table')
+  }
+}
+check_na(NumData)
+
+```
+
+```{r}
+library(VIM)
+
+mice_plot <- aggr(res_trier, col=c('green','red'),
+numbers=TRUE, sortVars=TRUE,
+labels=names(res_trier), cex.axis=.7,
+gap=3, ylab=c("Missing data","Pattern"))
+```
+
+Knn
+
+```{r}
+
+library(class)
+ran <- sample(1:nrow(res_trier), 0.75 * nrow(res_trier)) 
+ 
+ ##the normalization function is created
+ nor <-function(x) { (x -min(x))/(max(x)-min(x))   }
+ 
+ ##Run nomalization on first 4 coulumns of dataset because they are the predictors
+ res_trier_norm <- as.data.frame(lapply(res_trier[,c(1,2,3,5,6,7)], nor))
+ ##extract training set
+res_trier_train <- res_trier_norm[ran,] 
+##extract testing set
+ res_trier_test <- res_trier_norm[-ran,] 
+ ##extract 5th column of train dataset because it will be used as 'cl' argument in knn function.
+ res_trier_target_category <- res_trier[ran,3]
+ ##extract 5th column if test dataset to measure the accuracy
+ res_trier_test_category <- res_trier[-ran,3]
+##load the package class
+ library(class)
+ ##run knn function
+ pr_75 <- knn(res_trier_train,res_trier_test,cl=res_trier_target_category,k=25)
+ pr_25 <- knn(res_trier_test,res_trier_train,cl=res_trier_test_category,k=50)
+
+ ##create confusion matrix
+ tab_75 <- table(pr_75,res_trier_test_category)
+  tab_25 <- table(pr_25,res_trier_target_category)
+ ##this function divides the correct predictions by total number of predictions that tell us how accurate teh model is.
+ 
+ accuracy <- function(x){sum(diag(x)/(sum(rowSums(x)))) * 100}
+ accuracy(tab_75)
+ accuracy(tab_25)
+
+ tab_75 <- as.data.frame(tab_75)
+ tab_25 <- as.data.frame(tab_25)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(data=res_trier, aes(x=res_trier$price, y=res_trier$neighbourhood)) + geom_histogram(stat='identity')
+```
+
