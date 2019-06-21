@@ -32,11 +32,11 @@ con <-dbConnect(RMySQL::MySQL(),
 CREATION DE LA TABLE
 ```{r}
 
-dbCreateTable(con, "listings",listings,encoding="UTF-8")
+#dbCreateTable(con, "listings",listings,encoding="UTF-8")
 ```
 INSERTION DE LA DONNE DANS LA BASE
 ```{r}
-dbxInsert(con, "listings",listings)
+#dbxInsert(con, "listings",listings)
 ```
 Requête de selection sur la base de donnée 
 ```{r}
@@ -83,10 +83,20 @@ check_na(NumData)
 ```{r}
 library(VIM)
 
+mice_plot <- aggr(res, col=c('green','red'),
+numbers=TRUE, sortVars=TRUE,
+labels=names(res_trier), cex.axis=.5,
+gap=4, ylab=c("DONNEES MANQUANTE","DATA FRAME"))
+```
+
+
+```{r}
+library(VIM)
+
 mice_plot <- aggr(res_trier, col=c('green','red'),
 numbers=TRUE, sortVars=TRUE,
-labels=names(res_trier), cex.axis=.7,
-gap=3, ylab=c("Missing data","Pattern"))
+labels=names(res_trier), cex.axis=.5,
+gap=3, ylab=c("DONNEES MANQUANTE","DATA FRAME"))
 ```
 
 Knn
@@ -126,11 +136,25 @@ res_trier_train <- res_trier_norm[ran,]
 
  tab_75 <- as.data.frame(tab_75)
  tab_25 <- as.data.frame(tab_25)
+ 
 ```
 
 ```{r}
-library(ggplot2)
-
-ggplot(data=res_trier, aes(x=res_trier$price, y=res_trier$neighbourhood)) + geom_histogram(stat='identity')
+ggplot(res_trier) +
+  aes(x = res_trier$price, y = res_trier$neighbourhood) +
+   geom_point() +
+  xlab("PRIX") +
+  ylab("VILLE") +
+  ggtitle("PRIX PAR RAPPORT AU VILLE")
 ```
+
+```{r}
+ggplot(res_trier) +
+  aes(x =res_trier$minimum_nights, y = res_trier$neighbourhood) +
+  geom_smooth() +
+  geom_point() +
+  xlab("lieux logement") +
+  ylab("minimum nuit")
+```
+
 
